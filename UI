@@ -1,0 +1,1571 @@
+-- Greatness UI Library v2.3
+-- Mobile Support & Enhanced Responsiveness
+-- Modern, Transparent Professional UI
+
+local Greatness = {}
+Greatness.__index = Greatness
+
+-- Services
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local Lighting = game:GetService("Lighting")
+
+-- Player
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+-- Check if device is mobile
+local IS_MOBILE = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+local IS_TABLET = IS_MOBILE and (UserInputService.TouchScreenSize.X > 1200 or UserInputService.TouchScreenSize.Y > 1200)
+
+-- Global variables
+Greatness.Themes = {
+    Dark = {
+        Main = Color3.fromRGB(20, 20, 20),
+        MainTransparency = 0.1,
+        Secondary = Color3.fromRGB(30, 30, 30),
+        SecondaryTransparency = 0.2,
+        Accent = Color3.fromRGB(0, 180, 255),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(200, 200, 200),
+        Glow = Color3.fromRGB(0, 100, 255)
+    },
+    Light = {
+        Main = Color3.fromRGB(240, 240, 240),
+        MainTransparency = 0.1,
+        Secondary = Color3.fromRGB(220, 220, 220),
+        SecondaryTransparency = 0.2,
+        Accent = Color3.fromRGB(0, 120, 215),
+        Text = Color3.fromRGB(0, 0, 0),
+        TextSecondary = Color3.fromRGB(80, 80, 80),
+        Glow = Color3.fromRGB(100, 150, 255)
+    },
+    Purple = {
+        Main = Color3.fromRGB(25, 20, 35),
+        MainTransparency = 0.1,
+        Secondary = Color3.fromRGB(35, 25, 50),
+        SecondaryTransparency = 0.2,
+        Accent = Color3.fromRGB(170, 80, 255),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(200, 200, 200),
+        Glow = Color3.fromRGB(140, 60, 255)
+    }
+}
+
+Greatness.CurrentTheme = Greatness.Themes.Dark
+
+-- Utility functions
+local function Create(instanceType, properties)
+    local instance = Instance.new(instanceType)
+    for property, value in pairs(properties) do
+        instance[property] = value
+    end
+    return instance
+end
+
+local function Tween(Object, Properties, Duration, Style, Direction)
+    local TweenInfo = TweenInfo.new(Duration or 0.3, Style or Enum.EasingStyle.Quad, Direction or Enum.EasingDirection.Out)
+    local Tween = TweenService:Create(Object, TweenInfo, Properties)
+    Tween:Play()
+    return Tween
+end
+
+-- Get appropriate sizes for device type
+local function GetMobileSize()
+    if IS_TABLET then
+        return UDim2.new(0.85, 0, 0.8, 0) -- Tablet size
+    else
+        return UDim2.new(0.95, 0, 0.85, 0) -- Phone size
+    end
+end
+
+local function GetElementHeight()
+    if IS_MOBILE then
+        return 50 -- Larger touch targets
+    else
+        return 45 -- Desktop size
+    end
+end
+
+local function GetFontSize()
+    if IS_MOBILE then
+        return 16 -- Larger text for mobile
+    else
+        return 14 -- Desktop text size
+    end
+end
+
+-- Modern blur effect
+local function CreateBlurEffect(parent)
+    local blur = Instance.new("BlurEffect")
+    blur.Size = 0
+    blur.Parent = Lighting
+    
+    Tween(blur, {Size = 12}, 0.8)
+    
+    return blur
+end
+
+-- Main GUI Creation
+function Greatness:CreateWindow(options)
+    options = options or {}
+    local Window = {
+        Tabs = {},
+        CurrentTab = nil,
+        Open = false,
+        MobileButton = nil,
+        Verified = not options.KeySystem, -- Auto-verify if no key system
+        KeySystemEnabled = options.KeySystem or false,
+        IsMobile = IS_MOBILE
+    }
+    
+    setmetatable(Window, Greatness)
+    
+    -- Main ScreenGui
+    Window.ScreenGui = Create("ScreenGui", {
+        Name = "GreatnessUI",
+        DisplayOrder = 10,
+        IgnoreGuiInset = true,
+        Parent = CoreGui
+    })
+    
+    -- Background Overlay
+    Window.BackgroundOverlay = Create("Frame", {
+        Name = "BackgroundOverlay",
+        BackgroundColor3 = Color3.new(0, 0, 0),
+        BackgroundTransparency = 1, -- Start transparent
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BorderSizePixel = 0,
+        ZIndex = 1,
+        Parent = Window.ScreenGui
+    })
+    
+    -- Loading Screen
+    Window.LoadingFrame = Create("Frame", {
+        Name = "LoadingFrame",
+        BackgroundColor3 = Greatness.CurrentTheme.Main,
+        BackgroundTransparency = 0.2,
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BorderSizePixel = 0,
+        ZIndex = 20,
+        Parent = Window.ScreenGui
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(0, 0), Parent = Window.LoadingFrame})
+    
+    -- Animated Background Effect
+    local LoadingBackground = Create("Frame", {
+        Name = "LoadingBackground",
+        BackgroundColor3 = Greatness.CurrentTheme.Accent,
+        BackgroundTransparency = 0.9,
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BorderSizePixel = 0,
+        ZIndex = 19,
+        Parent = Window.LoadingFrame
+    })
+    
+    -- Animate background
+    spawn(function()
+        while Window.LoadingFrame and Window.LoadingFrame.Parent do
+            Tween(LoadingBackground, {BackgroundTransparency = 0.7}, 2)
+            wait(2)
+            Tween(LoadingBackground, {BackgroundTransparency = 0.9}, 2)
+            wait(2)
+        end
+    end)
+    
+    -- Responsive loading container size
+    local loadingWidth = IS_MOBILE and 350 or 300
+    local loadingHeight = IS_MOBILE and 250 or 200
+    
+    local LoadingContainer = Create("Frame", {
+        Name = "LoadingContainer",
+        BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+        BackgroundTransparency = 0.3,
+        Size = UDim2.new(0, loadingWidth, 0, loadingHeight),
+        Position = UDim2.new(0.5, -loadingWidth/2, 0.5, -loadingHeight/2),
+        BorderSizePixel = 0,
+        ZIndex = 21,
+        Parent = Window.LoadingFrame
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = LoadingContainer})
+    Create("UIStroke", {
+        Color = Greatness.CurrentTheme.Accent,
+        Thickness = 2,
+        Transparency = 0.5,
+        Parent = LoadingContainer
+    })
+    
+    -- Glow effect
+    local Glow = Create("ImageLabel", {
+        Name = "Glow",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 40, 1, 40),
+        Position = UDim2.new(0, -20, 0, -20),
+        Image = "rbxassetid://8992230675",
+        ImageColor3 = Greatness.CurrentTheme.Glow,
+        ImageTransparency = 0.8,
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(49, 49, 450, 450),
+        ZIndex = 20,
+        Parent = LoadingContainer
+    })
+    
+    local LoadingLogo = Create("ImageLabel", {
+        Name = "LoadingLogo",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 80, 0, 80),
+        Position = UDim2.new(0.5, -40, 0.3, -40),
+        Image = "rbxassetid://7072717772",
+        ZIndex = 22,
+        Parent = LoadingContainer
+    })
+    
+    local LoadingText = Create("TextLabel", {
+        Name = "LoadingText",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 200, 0, 30),
+        Position = UDim2.new(0.5, -100, 0.6, 0),
+        Font = Enum.Font.GothamSemibold,
+        Text = "Greatness UI",
+        TextColor3 = Greatness.CurrentTheme.Text,
+        TextSize = IS_MOBILE and 22 or 20,
+        ZIndex = 22,
+        Parent = LoadingContainer
+    })
+    
+    local LoadingSubtext = Create("TextLabel", {
+        Name = "LoadingSubtext",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 200, 0, 20),
+        Position = UDim2.new(0.5, -100, 0.75, 0),
+        Font = Enum.Font.Gotham,
+        Text = "Loading...",
+        TextColor3 = Greatness.CurrentTheme.TextSecondary,
+        TextSize = IS_MOBILE and 16 or 14,
+        ZIndex = 22,
+        Parent = LoadingContainer
+    })
+    
+    -- Loading bar
+    local LoadingBar = Create("Frame", {
+        Name = "LoadingBar",
+        BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+        BackgroundTransparency = 0.5,
+        Size = UDim2.new(0.8, 0, 0, 6),
+        Position = UDim2.new(0.1, 0, 0.9, 0),
+        BorderSizePixel = 0,
+        ZIndex = 22,
+        Parent = LoadingContainer
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = LoadingBar})
+    
+    local LoadingBarFill = Create("Frame", {
+        Name = "LoadingBarFill",
+        BackgroundColor3 = Greatness.CurrentTheme.Accent,
+        Size = UDim2.new(0, 0, 1, 0),
+        BorderSizePixel = 0,
+        ZIndex = 23,
+        Parent = LoadingBar
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = LoadingBarFill})
+    
+    -- Responsive main container size
+    local mainSize = IS_MOBILE and GetMobileSize() or UDim2.new(0, 550, 0, 450)
+    local mainPosition = IS_MOBILE and UDim2.new(0.5, -mainSize.X.Offset/2, 0.5, -mainSize.Y.Offset/2) or UDim2.new(0.5, -275, 0.5, -225)
+    
+    -- Main Container
+    Window.MainFrame = Create("Frame", {
+        Name = "MainFrame",
+        BackgroundColor3 = Greatness.CurrentTheme.Main,
+        BackgroundTransparency = 0.1,
+        Size = mainSize,
+        Position = mainPosition,
+        Visible = false,
+        ZIndex = 2,
+        Parent = Window.ScreenGui
+    })
+    
+    -- Corner and Stroke
+    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = Window.MainFrame})
+    Create("UIStroke", {
+        Color = Greatness.CurrentTheme.Accent,
+        Thickness = 1,
+        Transparency = 0.7,
+        Parent = Window.MainFrame
+    })
+    
+    -- Main Glow Effect
+    local MainGlow = Create("ImageLabel", {
+        Name = "MainGlow",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 60, 1, 60),
+        Position = UDim2.new(0, -30, 0, -30),
+        Image = "rbxassetid://8992230675",
+        ImageColor3 = Greatness.CurrentTheme.Glow,
+        ImageTransparency = 0.9,
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(49, 49, 450, 450),
+        ZIndex = 1,
+        Parent = Window.MainFrame
+    })
+    
+    -- Top Bar
+    Window.TopBar = Create("Frame", {
+        Name = "TopBar",
+        BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+        BackgroundTransparency = 0.2,
+        Size = UDim2.new(1, 0, 0, IS_MOBILE and 55 or 45),
+        BorderSizePixel = 0,
+        ZIndex = 3,
+        Parent = Window.MainFrame
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 12),
+        Parent = Window.TopBar
+    })
+    
+    Window.Title = Create("TextLabel", {
+        Name = "Title",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 200, 1, 0),
+        Position = UDim2.new(0, 15, 0, 0),
+        Font = Enum.Font.GothamBold,
+        Text = options.Name or "Greatness UI",
+        TextColor3 = Greatness.CurrentTheme.Text,
+        TextSize = IS_MOBILE and 20 or 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 4,
+        Parent = Window.TopBar
+    })
+    
+    Window.CloseButton = Create("TextButton", {
+        Name = "CloseButton",
+        BackgroundColor3 = Color3.fromRGB(255, 60, 60),
+        BackgroundTransparency = 0.3,
+        Size = UDim2.new(0, IS_MOBILE and 35 or 30, 0, IS_MOBILE and 35 or 30),
+        Position = UDim2.new(1, -40, 0.5, -IS_MOBILE and 17.5 or 15),
+        Font = Enum.Font.GothamBold,
+        Text = "×",
+        TextColor3 = Color3.new(1, 1, 1),
+        TextSize = IS_MOBILE and 24 or 20,
+        ZIndex = 4,
+        Parent = Window.TopBar
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Window.CloseButton})
+    
+    -- Tab Buttons Container (Hidden on mobile, shown in bottom bar)
+    local tabContainerWidth = IS_MOBILE and 0 or 140
+    local tabContainerVisible = not IS_MOBILE
+    
+    Window.TabContainer = Create("Frame", {
+        Name = "TabContainer",
+        BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+        BackgroundTransparency = 0.2,
+        Size = UDim2.new(0, tabContainerWidth, 0, IS_MOBILE and 0 or 405),
+        Position = UDim2.new(0, 0, 0, IS_MOBILE and 0 or 45),
+        BorderSizePixel = 0,
+        Visible = tabContainerVisible,
+        ZIndex = 3,
+        Parent = Window.MainFrame
+    })
+    
+    if not IS_MOBILE then
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 12),
+            Parent = Window.TabContainer
+        })
+    end
+    
+    Window.TabList = Create("ScrollingFrame", {
+        Name = "TabList",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, IS_MOBILE and 0 or -50),
+        Position = UDim2.new(0, 0, 0, 0),
+        BorderSizePixel = 0,
+        ScrollBarThickness = 3,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        ZIndex = 4,
+        Visible = tabContainerVisible,
+        Parent = Window.TabContainer
+    })
+    
+    Create("UIListLayout", {
+        Padding = UDim.new(0, 8),
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        Parent = Window.TabList
+    })
+    
+    -- Content Container
+    local contentWidth = IS_MOBILE and mainSize.X.Offset or 410
+    local contentPosition = IS_MOBILE and UDim2.new(0, 0, 0, IS_MOBILE and 55 or 45) or UDim2.new(0, 140, 0, 45)
+    
+    Window.ContentContainer = Create("Frame", {
+        Name = "ContentContainer",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, IS_MOBILE and -110 or -45),
+        Position = contentPosition,
+        ZIndex = 3,
+        Parent = Window.MainFrame
+    })
+    
+    -- Mobile Bottom Tab Bar
+    if IS_MOBILE then
+        Window.MobileTabBar = Create("Frame", {
+            Name = "MobileTabBar",
+            BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+            BackgroundTransparency = 0.2,
+            Size = UDim2.new(1, 0, 0, 55),
+            Position = UDim2.new(0, 0, 1, -55),
+            BorderSizePixel = 0,
+            ZIndex = 3,
+            Parent = Window.MainFrame
+        })
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 12),
+            Parent = Window.MobileTabBar
+        })
+        
+        Window.MobileTabList = Create("ScrollingFrame", {
+            Name = "MobileTabList",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            BorderSizePixel = 0,
+            ScrollBarThickness = 0,
+            CanvasSize = UDim2.new(0, 0, 0, 0),
+            ZIndex = 4,
+            Parent = Window.MobileTabBar
+        })
+        
+        Create("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            FillDirection = Enum.FillDirection.Horizontal,
+            HorizontalAlignment = Enum.HorizontalAlignment.Center,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            Padding = UDim.new(0, 5),
+            Parent = Window.MobileTabList
+        })
+    end
+    
+    -- UI Settings Button
+    local settingsButtonSize = IS_MOBILE and UDim2.new(0, 140, 0, 40) or UDim2.new(0, 120, 0, 35)
+    local settingsButtonPosition = IS_MOBILE and UDim2.new(0, 10, 1, -50) or UDim2.new(0, 10, 1, -45)
+    
+    Window.UISettingsButton = Create("TextButton", {
+        Name = "UISettingsButton",
+        BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+        BackgroundTransparency = 0.2,
+        Size = settingsButtonSize,
+        Position = settingsButtonPosition,
+        Font = Enum.Font.Gotham,
+        Text = "⚙️ UI Settings",
+        TextColor3 = Greatness.CurrentTheme.Text,
+        TextSize = IS_MOBILE and 16 or 14,
+        ZIndex = 4,
+        Parent = Window.MainFrame
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Window.UISettingsButton})
+    
+    -- Mobile Button (only created if on mobile)
+    if IS_MOBILE then
+        Window.MobileButton = Create("ImageButton", {
+            Name = "MobileButton",
+            BackgroundColor3 = Greatness.CurrentTheme.Accent,
+            BackgroundTransparency = 0.2,
+            Size = UDim2.new(0, 70, 0, 70),
+            Position = UDim2.new(0.5, -35, 0, 20), -- Centered at top
+            Image = "rbxassetid://99955288663052", -- Your custom icon
+            ScaleType = Enum.ScaleType.Fit,
+            Visible = false,
+            ZIndex = 5,
+            Parent = Window.ScreenGui
+        })
+        
+        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Window.MobileButton})
+        Create("UIStroke", {
+            Color = Color3.new(1, 1, 1),
+            Thickness = 2,
+            Transparency = 0.5,
+            Parent = Window.MobileButton
+        })
+        
+        -- Mobile button glow
+        local MobileGlow = Create("ImageLabel", {
+            Name = "MobileGlow",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 20, 1, 20),
+            Position = UDim2.new(0, -10, 0, -10),
+            Image = "rbxassetid://8992230675",
+            ImageColor3 = Greatness.CurrentTheme.Glow,
+            ImageTransparency = 0.8,
+            ScaleType = Enum.ScaleType.Slice,
+            SliceCenter = Rect.new(49, 49, 450, 450),
+            ZIndex = 4,
+            Parent = Window.MobileButton
+        })
+    end
+    
+    -- UI Settings Window
+    Window:CreateUISettings()
+    
+    -- Events
+    Window.CloseButton.MouseButton1Click:Connect(function()
+        Window:Toggle()
+    end)
+    
+    if Window.MobileButton then
+        Window.MobileButton.MouseButton1Click:Connect(function()
+            Window:Toggle()
+        end)
+    end
+    
+    -- UI Settings button
+    Window.UISettingsButton.MouseButton1Click:Connect(function()
+        if Window.UISettings then
+            Window.UISettings.Enabled = not Window.UISettings.Enabled
+        end
+    end)
+    
+    -- Keybind system (only on desktop)
+    if not IS_MOBILE then
+        Window.Keybind = options.Keybind or Enum.KeyCode.RightShift
+        Window.KeybindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
+            if input.KeyCode == Window.Keybind and Window.Verified then
+                Window:Toggle()
+            end
+        end)
+    end
+    
+    -- Dragging functionality (only on desktop)
+    if not IS_MOBILE then
+        local dragging
+        local dragInput
+        local dragStart
+        local startPos
+        
+        local function update(input)
+            local delta = input.Position - dragStart
+            Window.MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+        
+        Window.TopBar.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+                dragStart = input.Position
+                startPos = Window.MainFrame.Position
+                
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+        
+        Window.TopBar.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                dragInput = input
+            end
+        end)
+        
+        UserInputService.InputChanged:Connect(function(input)
+            if input == dragInput and dragging then
+                update(input)
+            end
+        end)
+    end
+    
+    -- Start loading animation
+    spawn(function()
+        Window:LoadingAnimation()
+    end)
+    
+    -- Key system if enabled - FIXED: Now properly optional
+    if Window.KeySystemEnabled and options.Key then
+        Window.KeySystemKey = options.Key
+        spawn(function()
+            wait(1) -- Wait for loading to complete
+            Window:KeySystem({Key = options.Key})
+        end)
+    else
+        -- If no key system, auto-verify after loading
+        spawn(function()
+            wait(3) -- Wait for loading animation
+            Window.Verified = true
+        end)
+    end
+    
+    return Window
+end
+
+-- Enhanced Loading Animation
+function Greatness:LoadingAnimation()
+    -- Fade in loading screen
+    self.LoadingFrame.BackgroundTransparency = 1
+    self.LoadingFrame.Visible = true
+    Tween(self.LoadingFrame, {BackgroundTransparency = 0.2}, 0.8)
+    
+    -- Animate loading bar
+    local loadingBar = self.LoadingFrame:FindFirstChild("LoadingContainer")
+    if loadingBar then
+        local barFill = loadingBar:FindFirstChild("LoadingBar"):FindFirstChild("LoadingBarFill")
+        if barFill then
+            Tween(barFill, {Size = UDim2.new(1, 0, 1, 0)}, 2.5)
+        end
+    end
+    
+    -- Rotate logo with smooth animation
+    local logo = self.LoadingFrame:FindFirstChild("LoadingContainer"):FindFirstChild("LoadingLogo")
+    if logo then
+        for i = 1, 2 do
+            Tween(logo, {Rotation = 360}, 1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            wait(1.6)
+        end
+    end
+    
+    -- Only proceed if verified or no key system
+    if not self.KeySystemEnabled or self.Verified then
+        -- Fade out loading screen
+        Tween(self.LoadingFrame, {BackgroundTransparency = 1}, 0.8)
+        wait(0.8)
+        self.LoadingFrame.Visible = false
+        
+        -- Show main UI with fade in
+        self.MainFrame.Visible = true
+        self.MainFrame.BackgroundTransparency = 1
+        Tween(self.MainFrame, {BackgroundTransparency = 0.1}, 0.5)
+        
+        if self.MobileButton then
+            self.MobileButton.Visible = true
+        end
+    end
+end
+
+-- Enhanced UI Settings
+function Greatness:CreateUISettings()
+    self.UISettings = Create("ScreenGui", {
+        Name = "GreatnessUISettings",
+        DisplayOrder = 20,
+        Parent = CoreGui
+    })
+    
+    local settingsSize = IS_MOBILE and UDim2.new(0.9, 0, 0.8, 0) or UDim2.new(0, 450, 0, 350)
+    local settingsPosition = IS_MOBILE and UDim2.new(0.05, 0, 0.1, 0) or UDim2.new(0.5, -225, 0.5, -175)
+    
+    local SettingsFrame = Create("Frame", {
+        Name = "SettingsFrame",
+        BackgroundColor3 = Greatness.CurrentTheme.Main,
+        BackgroundTransparency = 0.1,
+        Size = settingsSize,
+        Position = settingsPosition,
+        Visible = false,
+        ZIndex = 2,
+        Parent = self.UISettings
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = SettingsFrame})
+    Create("UIStroke", {
+        Color = Greatness.CurrentTheme.Accent,
+        Thickness = 1,
+        Transparency = 0.7,
+        Parent = SettingsFrame
+    })
+    
+    -- Settings Glow
+    local SettingsGlow = Create("ImageLabel", {
+        Name = "SettingsGlow",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 60, 1, 60),
+        Position = UDim2.new(0, -30, 0, -30),
+        Image = "rbxassetid://8992230675",
+        ImageColor3 = Greatness.CurrentTheme.Glow,
+        ImageTransparency = 0.9,
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(49, 49, 450, 450),
+        ZIndex = 1,
+        Parent = SettingsFrame
+    })
+    
+    local SettingsTopBar = Create("Frame", {
+        Name = "SettingsTopBar",
+        BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+        BackgroundTransparency = 0.2,
+        Size = UDim2.new(1, 0, 0, IS_MOBILE and 55 or 45),
+        BorderSizePixel = 0,
+        ZIndex = 3,
+        Parent = SettingsFrame
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 12),
+        Parent = SettingsTopBar
+    })
+    
+    local SettingsTitle = Create("TextLabel", {
+        Name = "SettingsTitle",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 200, 1, 0),
+        Position = UDim2.new(0, 15, 0, 0),
+        Font = Enum.Font.GothamBold,
+        Text = "UI Settings",
+        TextColor3 = Greatness.CurrentTheme.Text,
+        TextSize = IS_MOBILE and 20 or 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 4,
+        Parent = SettingsTopBar
+    })
+    
+    local SettingsClose = Create("TextButton", {
+        Name = "SettingsClose",
+        BackgroundColor3 = Color3.fromRGB(255, 60, 60),
+        BackgroundTransparency = 0.3,
+        Size = UDim2.new(0, IS_MOBILE and 35 or 30, 0, IS_MOBILE and 35 or 30),
+        Position = UDim2.new(1, -40, 0.5, -IS_MOBILE and 17.5 or 15),
+        Font = Enum.Font.GothamBold,
+        Text = "×",
+        TextColor3 = Color3.new(1, 1, 1),
+        TextSize = IS_MOBILE and 24 or 20,
+        ZIndex = 4,
+        Parent = SettingsTopBar
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = SettingsClose})
+    
+    -- Only show keybind settings on desktop
+    if not IS_MOBILE then
+        local KeybindLabel = Create("TextLabel", {
+            Name = "KeybindLabel",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, -30, 0, 30),
+            Position = UDim2.new(0, 15, 0, 60),
+            Font = Enum.Font.GothamSemibold,
+            Text = "Toggle Keybind:",
+            TextColor3 = Greatness.CurrentTheme.Text,
+            TextSize = 16,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 4,
+            Parent = SettingsFrame
+        })
+        
+        local KeybindButton = Create("TextButton", {
+            Name = "KeybindButton",
+            BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+            BackgroundTransparency = 0.2,
+            Size = UDim2.new(0, 180, 0, 40),
+            Position = UDim2.new(0.5, -90, 0, 95),
+            Font = Enum.Font.Gotham,
+            Text = tostring(self.Keybind):gsub("Enum.KeyCode.", ""),
+            TextColor3 = Greatness.CurrentTheme.Text,
+            TextSize = 14,
+            ZIndex = 4,
+            Parent = SettingsFrame
+        })
+        
+        Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = KeybindButton})
+        
+        -- Keybind functionality
+        local listening = false
+        KeybindButton.MouseButton1Click:Connect(function()
+            if not listening then
+                listening = true
+                KeybindButton.Text = "Press any key..."
+                KeybindButton.BackgroundColor3 = Greatness.CurrentTheme.Accent
+                
+                local connection
+                connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+                    if gameProcessed then return end
+                    
+                    if input.UserInputType == Enum.UserInputType.Keyboard then
+                        self.Keybind = input.KeyCode
+                        KeybindButton.Text = tostring(input.KeyCode):gsub("Enum.KeyCode.", "")
+                        
+                        -- Update the keybind connection
+                        if self.KeybindConnection then
+                            self.KeybindConnection:Disconnect()
+                        end
+                        
+                        self.KeybindConnection = UserInputService.InputBegan:Connect(function(input2, gameProcessed2)
+                            if gameProcessed2 then return end
+                            if input2.KeyCode == self.Keybind and self.Verified then
+                                self:Toggle()
+                            end
+                        end)
+                    end
+                    
+                    listening = false
+                    KeybindButton.BackgroundColor3 = Greatness.CurrentTheme.Secondary
+                    connection:Disconnect()
+                end)
+            end
+        end)
+    end
+    
+    local ThemeLabel = Create("TextLabel", {
+        Name = "ThemeLabel",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -30, 0, 30),
+        Position = UDim2.new(0, 15, 0, IS_MOBILE and 70 or 150),
+        Font = Enum.Font.GothamSemibold,
+        Text = "Theme:",
+        TextColor3 = Greatness.CurrentTheme.Text,
+        TextSize = 16,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 4,
+        Parent = SettingsFrame
+    })
+    
+    local ThemeContainer = Create("Frame", {
+        Name = "ThemeContainer",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -30, 0, IS_MOBILE and 120 or 100),
+        Position = UDim2.new(0, 15, 0, IS_MOBILE and 100 or 180),
+        ZIndex = 4,
+        Parent = SettingsFrame
+    })
+    
+    local themes = {"Dark", "Light", "Purple"}
+    for i, themeName in ipairs(themes) do
+        local ThemeButton = Create("TextButton", {
+            Name = themeName .. "Theme",
+            BackgroundColor3 = Greatness.Themes[themeName].Accent,
+            BackgroundTransparency = 0.3,
+            Size = UDim2.new(IS_MOBILE and 0.95 or 0.3, IS_MOBILE and 0 or -10, 0, IS_MOBILE and 50 or 40),
+            Position = IS_MOBILE and UDim2.new(0.025, 0, (i-1) * 0.33, 0) or UDim2.new((i-1) * 0.33, 0, 0, 0),
+            Font = Enum.Font.Gotham,
+            Text = themeName,
+            TextColor3 = Color3.new(1, 1, 1),
+            TextSize = IS_MOBILE and 16 or 14,
+            ZIndex = 4,
+            Parent = ThemeContainer
+        })
+        
+        Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = ThemeButton})
+        
+        ThemeButton.MouseButton1Click:Connect(function()
+            self:ChangeTheme(Greatness.Themes[themeName])
+        end)
+    end
+    
+    -- Events
+    SettingsClose.MouseButton1Click:Connect(function()
+        self.UISettings.Enabled = false
+    end)
+    
+    self.UISettings.Enabled = false
+    
+    -- Handle UI Settings visibility
+    self.UISettings:GetPropertyChangedSignal("Enabled"):Connect(function()
+        if self.UISettings.Enabled then
+            SettingsFrame.Visible = true
+            SettingsFrame.BackgroundTransparency = 1
+            Tween(SettingsFrame, {BackgroundTransparency = 0.1}, 0.3)
+        else
+            Tween(SettingsFrame, {BackgroundTransparency = 1}, 0.3)
+            wait(0.3)
+            SettingsFrame.Visible = false
+        end
+    end)
+end
+
+-- Enhanced Change Theme
+function Greatness:ChangeTheme(theme)
+    Greatness.CurrentTheme = theme
+    
+    -- Update main UI
+    self.MainFrame.BackgroundColor3 = theme.Main
+    self.TopBar.BackgroundColor3 = theme.Secondary
+    if not self.IsMobile then
+        self.TabContainer.BackgroundColor3 = theme.Secondary
+    end
+    if self.IsMobile and self.MobileTabBar then
+        self.MobileTabBar.BackgroundColor3 = theme.Secondary
+    end
+    self.Title.TextColor3 = theme.Text
+    self.CloseButton.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+    self.UISettingsButton.BackgroundColor3 = theme.Secondary
+    self.UISettingsButton.TextColor3 = theme.Text
+    
+    -- Update UI Settings
+    local settingsFrame = self.UISettings and self.UISettings:FindFirstChild("SettingsFrame")
+    if settingsFrame then
+        settingsFrame.BackgroundColor3 = theme.Main
+        local topBar = settingsFrame:FindFirstChild("SettingsTopBar")
+        if topBar then
+            topBar.BackgroundColor3 = theme.Secondary
+        end
+        for _, child in pairs(settingsFrame:GetChildren()) do
+            if child:IsA("TextLabel") or child:IsA("TextButton") then
+                if child.Name ~= "KeybindButton" and child.Name ~= "ThemeButton" and not string.find(child.Name, "Theme") then
+                    child.TextColor3 = theme.Text
+                end
+            end
+        end
+    end
+    
+    -- Update tabs and elements
+    for _, tab in pairs(self.Tabs) do
+        if tab.Button then
+            tab.Button.BackgroundColor3 = theme.Secondary
+            tab.Button.TextColor3 = theme.Text
+        end
+        
+        if tab.MobileButton then
+            tab.MobileButton.BackgroundColor3 = theme.Secondary
+            tab.MobileButton.TextColor3 = theme.Text
+        end
+        
+        for _, element in pairs(tab.Elements) do
+            if element.Type == "Toggle" then
+                if element.ToggleFrame then
+                    element.ToggleFrame.BackgroundColor3 = theme.Secondary
+                    element.ToggleText.TextColor3 = theme.Text
+                end
+            elseif element.Type == "Slider" then
+                if element.SliderFrame then
+                    element.SliderFrame.BackgroundColor3 = theme.Secondary
+                    element.SliderText.TextColor3 = theme.Text
+                    element.SliderValue.TextColor3 = theme.Text
+                end
+            elseif element.Type == "Button" then
+                if element.Button then
+                    element.Button.BackgroundColor3 = theme.Secondary
+                    element.Button.TextColor3 = theme.Text
+                end
+            elseif element.Type == "Label" then
+                if element.Label then
+                    element.Label.TextColor3 = theme.Text
+                end
+            end
+        end
+    end
+end
+
+-- Enhanced Toggle UI - FIXED: Blur effect now properly removed
+function Greatness:Toggle()
+    if not self.Verified and self.KeySystemEnabled then
+        return
+    end
+    
+    self.Open = not self.Open
+    
+    if self.Open then
+        -- Create blur effect when opening
+        if not self.BlurEffect then
+            self.BlurEffect = CreateBlurEffect(self.ScreenGui)
+        else
+            Tween(self.BlurEffect, {Size = 12}, 0.3)
+        end
+        
+        self.MainFrame.Visible = true
+        Tween(self.MainFrame, {BackgroundTransparency = 0.1}, 0.3)
+        Tween(self.BackgroundOverlay, {BackgroundTransparency = 0.7}, 0.3)
+    else
+        -- Remove blur effect when closing
+        if self.BlurEffect then
+            Tween(self.BlurEffect, {Size = 0}, 0.3)
+            wait(0.3)
+            self.BlurEffect:Destroy()
+            self.BlurEffect = nil
+        end
+        
+        Tween(self.MainFrame, {BackgroundTransparency = 1}, 0.3)
+        Tween(self.BackgroundOverlay, {BackgroundTransparency = 1}, 0.3)
+        wait(0.3)
+        self.MainFrame.Visible = false
+    end
+end
+
+-- Enhanced Create Tab
+function Greatness:CreateTab(name, icon)
+    local Tab = {
+        Name = name,
+        Elements = {},
+        Parent = self
+    }
+    
+    -- Desktop Tab Button
+    if not self.IsMobile then
+        Tab.Button = Create("TextButton", {
+            Name = name .. "Tab",
+            BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+            BackgroundTransparency = 0.2,
+            Size = UDim2.new(0.9, 0, 0, 45),
+            Font = Enum.Font.Gotham,
+            Text = name,
+            TextColor3 = Greatness.CurrentTheme.Text,
+            TextSize = 14,
+            ZIndex = 4,
+            Parent = self.TabList
+        })
+        
+        Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Tab.Button})
+    end
+    
+    -- Mobile Tab Button
+    if self.IsMobile and self.MobileTabList then
+        Tab.MobileButton = Create("TextButton", {
+            Name = name .. "MobileTab",
+            BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+            BackgroundTransparency = 0.2,
+            Size = UDim2.new(0, 80, 0, 45),
+            Font = Enum.Font.Gotham,
+            Text = name,
+            TextColor3 = Greatness.CurrentTheme.Text,
+            TextSize = 12,
+            TextWrapped = true,
+            ZIndex = 4,
+            Parent = self.MobileTabList
+        })
+        
+        Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Tab.MobileButton})
+        
+        -- Update mobile tab list size
+        self.MobileTabList.CanvasSize = UDim2.new(0, (#self.Tabs + 1) * 85, 0, 0)
+    end
+    
+    -- Tab Content Frame
+    Tab.Frame = Create("ScrollingFrame", {
+        Name = name .. "Content",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BorderSizePixel = 0,
+        ScrollBarThickness = self.IsMobile and 6 or 3,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        Visible = false,
+        ZIndex = 3,
+        Parent = self.ContentContainer
+    })
+    
+    local UIListLayout = Create("UIListLayout", {
+        Padding = UDim.new(0, self.IsMobile and 15 or 12),
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        Parent = Tab.Frame
+    })
+    
+    UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        Tab.Frame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 20)
+    end)
+    
+    -- Button click events
+    if Tab.Button then
+        Tab.Button.MouseButton1Click:Connect(function()
+            self:SwitchTab(Tab)
+        end)
+    end
+    
+    if Tab.MobileButton then
+        Tab.MobileButton.MouseButton1Click:Connect(function()
+            self:SwitchTab(Tab)
+        end)
+    end
+    
+    -- Set as current tab if it's the first one
+    if #self.Tabs == 0 then
+        self:SwitchTab(Tab)
+    end
+    
+    table.insert(self.Tabs, Tab)
+    
+    -- Update tab list size (desktop)
+    if not self.IsMobile then
+        self.TabList.CanvasSize = UDim2.new(0, 0, 0, (#self.Tabs * 53) + 10)
+    end
+    
+    return Tab
+end
+
+-- Enhanced Switch Tab
+function Greatness:SwitchTab(tab)
+    if self.CurrentTab then
+        self.CurrentTab.Frame.Visible = false
+        if self.CurrentTab.Button then
+            Tween(self.CurrentTab.Button, {BackgroundColor3 = Greatness.CurrentTheme.Secondary}, 0.2)
+        end
+        if self.CurrentTab.MobileButton then
+            Tween(self.CurrentTab.MobileButton, {BackgroundColor3 = Greatness.CurrentTheme.Secondary}, 0.2)
+        end
+    end
+    
+    self.CurrentTab = tab
+    tab.Frame.Visible = true
+    if tab.Button then
+        Tween(tab.Button, {BackgroundColor3 = Greatness.CurrentTheme.Accent}, 0.2)
+    end
+    if tab.MobileButton then
+        Tween(tab.MobileButton, {BackgroundColor3 = Greatness.CurrentTheme.Accent}, 0.2)
+    end
+end
+
+-- Enhanced Create Toggle
+function Greatness:CreateToggle(tab, options)
+    options = options or {}
+    local Toggle = {
+        Type = "Toggle",
+        Value = options.Default or false,
+        Callback = options.Callback or function() end
+    }
+    
+    local elementHeight = GetElementHeight()
+    local toggleWidth = self.IsMobile and 0.95 or 0.9
+    
+    local ToggleFrame = Create("Frame", {
+        Name = "ToggleFrame",
+        BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+        BackgroundTransparency = 0.2,
+        Size = UDim2.new(toggleWidth, 0, 0, elementHeight),
+        ZIndex = 4,
+        Parent = tab.Frame
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = ToggleFrame})
+    
+    local ToggleText = Create("TextLabel", {
+        Name = "ToggleText",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.7, 0, 1, 0),
+        Position = UDim2.new(0, 15, 0, 0),
+        Font = Enum.Font.Gotham,
+        Text = options.Name or "Toggle",
+        TextColor3 = Greatness.CurrentTheme.Text,
+        TextSize = GetFontSize(),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 5,
+        Parent = ToggleFrame
+    })
+    
+    local toggleButtonSize = self.IsMobile and UDim2.new(0, 65, 0, 32) or UDim2.new(0, 55, 0, 28)
+    local toggleKnobSize = self.IsMobile and UDim2.new(0, 28, 0, 28) or UDim2.new(0, 24, 0, 24)
+    
+    local ToggleButton = Create("TextButton", {
+        Name = "ToggleButton",
+        BackgroundColor3 = Greatness.CurrentTheme.Main,
+        BackgroundTransparency = 0.1,
+        Size = toggleButtonSize,
+        Position = UDim2.new(1, -70, 0.5, -self.IsMobile and 16 or 14),
+        Font = Enum.Font.Gotham,
+        Text = "",
+        ZIndex = 5,
+        Parent = ToggleFrame
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = ToggleButton})
+    
+    local ToggleKnob = Create("Frame", {
+        Name = "ToggleKnob",
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        Size = toggleKnobSize,
+        Position = UDim2.new(0, 2, 0.5, -self.IsMobile and 14 or 12),
+        ZIndex = 6,
+        Parent = ToggleButton
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = ToggleKnob})
+    
+    -- Set initial state
+    if Toggle.Value then
+        Tween(ToggleButton, {BackgroundColor3 = Greatness.CurrentTheme.Accent}, 0.2)
+        Tween(ToggleKnob, {Position = UDim2.new(0, self.IsMobile and 35 or 29, 0.5, -self.IsMobile and 14 or 12)}, 0.2)
+    else
+        Tween(ToggleButton, {BackgroundColor3 = Color3.fromRGB(80, 80, 80)}, 0.2)
+        Tween(ToggleKnob, {Position = UDim2.new(0, 2, 0.5, -self.IsMobile and 14 or 12)}, 0.2)
+    end
+    
+    -- Toggle functionality
+    ToggleButton.MouseButton1Click:Connect(function()
+        Toggle.Value = not Toggle.Value
+        
+        if Toggle.Value then
+            Tween(ToggleButton, {BackgroundColor3 = Greatness.CurrentTheme.Accent}, 0.2)
+            Tween(ToggleKnob, {Position = UDim2.new(0, self.IsMobile and 35 or 29, 0.5, -self.IsMobile and 14 or 12)}, 0.2)
+        else
+            Tween(ToggleButton, {BackgroundColor3 = Color3.fromRGB(80, 80, 80)}, 0.2)
+            Tween(ToggleKnob, {Position = UDim2.new(0, 2, 0.5, -self.IsMobile and 14 or 12)}, 0.2)
+        end
+        
+        Toggle.Callback(Toggle.Value)
+    end)
+    
+    Toggle.ToggleFrame = ToggleFrame
+    Toggle.ToggleText = ToggleText
+    table.insert(tab.Elements, Toggle)
+    
+    return Toggle
+end
+
+-- Enhanced Create Slider
+function Greatness:CreateSlider(tab, options)
+    options = options or {}
+    local Slider = {
+        Type = "Slider",
+        Value = options.Default or options.Min or 0,
+        Min = options.Min or 0,
+        Max = options.Max or 100,
+        Callback = options.Callback or function() end
+    }
+    
+    local sliderWidth = self.IsMobile and 0.95 or 0.9
+    local sliderHeight = self.IsMobile and 85 or 70
+    
+    local SliderFrame = Create("Frame", {
+        Name = "SliderFrame",
+        BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+        BackgroundTransparency = 0.2,
+        Size = UDim2.new(sliderWidth, 0, 0, sliderHeight),
+        ZIndex = 4,
+        Parent = tab.Frame
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = SliderFrame})
+    
+    local SliderText = Create("TextLabel", {
+        Name = "SliderText",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.9, 0, 0, 25),
+        Position = UDim2.new(0, 15, 0, 5),
+        Font = Enum.Font.Gotham,
+        Text = options.Name or "Slider",
+        TextColor3 = Greatness.CurrentTheme.Text,
+        TextSize = GetFontSize(),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 5,
+        Parent = SliderFrame
+    })
+    
+    local SliderValue = Create("TextLabel", {
+        Name = "SliderValue",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.1, 0, 0, 25),
+        Position = UDim2.new(0.9, -15, 0, 5),
+        Font = Enum.Font.Gotham,
+        Text = tostring(Slider.Value),
+        TextColor3 = Greatness.CurrentTheme.Text,
+        TextSize = GetFontSize(),
+        TextXAlignment = Enum.TextXAlignment.Right,
+        ZIndex = 5,
+        Parent = SliderFrame
+    })
+    
+    local SliderBar = Create("Frame", {
+        Name = "SliderBar",
+        BackgroundColor3 = Greatness.CurrentTheme.Main,
+        BackgroundTransparency = 0.1,
+        Size = UDim2.new(0.9, 0, 0, self.IsMobile and 16 or 12),
+        Position = UDim2.new(0.05, 0, 0, self.IsMobile and 45 or 40),
+        ZIndex = 5,
+        Parent = SliderFrame
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = SliderBar})
+    
+    local SliderFill = Create("Frame", {
+        Name = "SliderFill",
+        BackgroundColor3 = Greatness.CurrentTheme.Accent,
+        Size = UDim2.new((Slider.Value - Slider.Min) / (Slider.Max - Slider.Min), 0, 1, 0),
+        ZIndex = 6,
+        Parent = SliderBar
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = SliderFill})
+    
+    local SliderButton = Create("TextButton", {
+        Name = "SliderButton",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = "",
+        ZIndex = 7,
+        Parent = SliderBar
+    })
+    
+    -- Slider functionality
+    local dragging = false
+    
+    local function updateSlider(input)
+        local relativeX = (input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X
+        relativeX = math.clamp(relativeX, 0, 1)
+        
+        Slider.Value = math.floor(Slider.Min + (relativeX * (Slider.Max - Slider.Min)))
+        SliderValue.Text = tostring(Slider.Value)
+        SliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+        
+        Slider.Callback(Slider.Value)
+    end
+    
+    SliderButton.MouseButton1Down:Connect(function()
+        dragging = true
+    end)
+    
+    SliderButton.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateSlider(input)
+        end
+    end)
+    
+    Slider.SliderFrame = SliderFrame
+    Slider.SliderText = SliderText
+    Slider.SliderValue = SliderValue
+    table.insert(tab.Elements, Slider)
+    
+    return Slider
+end
+
+-- Enhanced Create Button
+function Greatness:CreateButton(tab, options)
+    options = options or {}
+    local Button = {
+        Type = "Button",
+        Callback = options.Callback or function() end
+    }
+    
+    local buttonWidth = self.IsMobile and 0.95 or 0.9
+    local elementHeight = GetElementHeight()
+    
+    local ButtonElement = Create("TextButton", {
+        Name = "Button",
+        BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+        BackgroundTransparency = 0.2,
+        Size = UDim2.new(buttonWidth, 0, 0, elementHeight),
+        Font = Enum.Font.Gotham,
+        Text = options.Name or "Button",
+        TextColor3 = Greatness.CurrentTheme.Text,
+        TextSize = GetFontSize(),
+        ZIndex = 4,
+        Parent = tab.Frame
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = ButtonElement})
+    
+    -- Button functionality
+    ButtonElement.MouseButton1Click:Connect(function()
+        -- Animation
+        local shrinkSize = self.IsMobile and UDim2.new(0.9, 0, 0, elementHeight - 5) or UDim2.new(0.85, 0, 0, 40)
+        local originalSize = UDim2.new(buttonWidth, 0, 0, elementHeight)
+        
+        Tween(ButtonElement, {Size = shrinkSize}, 0.1)
+        Tween(ButtonElement, {BackgroundColor3 = Greatness.CurrentTheme.Accent}, 0.1)
+        wait(0.1)
+        Tween(ButtonElement, {Size = originalSize}, 0.1)
+        Tween(ButtonElement, {BackgroundColor3 = Greatness.CurrentTheme.Secondary}, 0.3)
+        
+        Button.Callback()
+    end)
+    
+    Button.Button = ButtonElement
+    table.insert(tab.Elements, Button)
+    
+    return Button
+end
+
+-- Enhanced Create Label
+function Greatness:CreateLabel(tab, options)
+    options = options or {}
+    local Label = {
+        Type = "Label"
+    }
+    
+    local labelWidth = self.IsMobile and 0.95 or 0.9
+    local labelHeight = self.IsMobile and 40 or 35
+    
+    local LabelElement = Create("TextLabel", {
+        Name = "Label",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(labelWidth, 0, 0, labelHeight),
+        Font = Enum.Font.Gotham,
+        Text = options.Text or "Label",
+        TextColor3 = Greatness.CurrentTheme.Text,
+        TextSize = options.TextSize or GetFontSize(),
+        TextWrapped = true,
+        ZIndex = 4,
+        Parent = tab.Frame
+    })
+    
+    Label.Label = LabelElement
+    table.insert(tab.Elements, Label)
+    
+    return Label
+end
+
+-- Enhanced Key System - Now properly optional
+function Greatness:KeySystem(options)
+    options = options or {}
+    local key = options.Key or ""
+    
+    -- Create key GUI
+    local KeyGui = Create("ScreenGui", {
+        Name = "GreatnessKeySystem",
+        DisplayOrder = 100,
+        Parent = CoreGui
+    })
+    
+    local keyWidth = IS_MOBILE and 400 or 350
+    local keyHeight = IS_MOBILE and 300 or 250
+    
+    local KeyFrame = Create("Frame", {
+        Name = "KeyFrame",
+        BackgroundColor3 = Greatness.CurrentTheme.Main,
+        BackgroundTransparency = 0.1,
+        Size = UDim2.new(0, keyWidth, 0, keyHeight),
+        Position = UDim2.new(0.5, -keyWidth/2, 0.5, -keyHeight/2),
+        ZIndex = 2,
+        Parent = KeyGui
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = KeyFrame})
+    Create("UIStroke", {
+        Color = Greatness.CurrentTheme.Accent,
+        Thickness = 1,
+        Transparency = 0.7,
+        Parent = KeyFrame
+    })
+    
+    -- Key Glow
+    local KeyGlow = Create("ImageLabel", {
+        Name = "KeyGlow",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 60, 1, 60),
+        Position = UDim2.new(0, -30, 0, -30),
+        Image = "rbxassetid://8992230675",
+        ImageColor3 = Greatness.CurrentTheme.Glow,
+        ImageTransparency = 0.9,
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(49, 49, 450, 450),
+        ZIndex = 1,
+        Parent = KeyFrame
+    })
+    
+    local KeyTitle = Create("TextLabel", {
+        Name = "KeyTitle",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, IS_MOBILE and 60 or 50),
+        Position = UDim2.new(0, 0, 0, 10),
+        Font = Enum.Font.GothamBold,
+        Text = "Greatness Key System",
+        TextColor3 = Greatness.CurrentTheme.Text,
+        TextSize = IS_MOBILE and 22 or 20,
+        ZIndex = 3,
+        Parent = KeyFrame
+    })
+    
+    local KeyInput = Create("TextBox", {
+        Name = "KeyInput",
+        BackgroundColor3 = Greatness.CurrentTheme.Secondary,
+        BackgroundTransparency = 0.2,
+        Size = UDim2.new(0.8, 0, 0, IS_MOBILE and 55 or 45),
+        Position = UDim2.new(0.1, 0, 0, IS_MOBILE and 90 or 80),
+        Font = Enum.Font.Gotham,
+        PlaceholderText = "Enter key...",
+        PlaceholderColor3 = Greatness.CurrentTheme.TextSecondary,
+        Text = "",
+        TextColor3 = Greatness.CurrentTheme.Text,
+        TextSize = IS_MOBILE and 18 or 16,
+        ZIndex = 3,
+        Parent = KeyFrame
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = KeyInput})
+    
+    local KeySubmit = Create("TextButton", {
+        Name = "KeySubmit",
+        BackgroundColor3 = Greatness.CurrentTheme.Accent,
+        BackgroundTransparency = 0.3,
+        Size = UDim2.new(0.8, 0, 0, IS_MOBILE and 55 or 45),
+        Position = UDim2.new(0.1, 0, 0, IS_MOBILE and 160 or 140),
+        Font = Enum.Font.Gotham,
+        Text = "Submit",
+        TextColor3 = Color3.new(1, 1, 1),
+        TextSize = IS_MOBILE and 18 or 16,
+        ZIndex = 3,
+        Parent = KeyFrame
+    })
+    
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = KeySubmit})
+    
+    local KeyMessage = Create("TextLabel", {
+        Name = "KeyMessage",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.8, 0, 0, 25),
+        Position = UDim2.new(0.1, 0, 0, IS_MOBILE and 225 or 195),
+        Font = Enum.Font.Gotham,
+        Text = "",
+        TextColor3 = Color3.fromRGB(255, 50, 50),
+        TextSize = IS_MOBILE and 16 or 14,
+        ZIndex = 3,
+        Parent = KeyFrame
+    })
+    
+    -- Key verification
+    KeySubmit.MouseButton1Click:Connect(function()
+        if KeyInput.Text == key then
+            self.Verified = true
+            KeyGui:Destroy()
+            self.LoadingFrame.Visible = false
+            
+            -- Show main UI with fade in
+            self.MainFrame.Visible = true
+            self.MainFrame.BackgroundTransparency = 1
+            Tween(self.MainFrame, {BackgroundTransparency = 0.1}, 0.5)
+            
+            if self.MobileButton then
+                self.MobileButton.Visible = true
+            end
+            
+            if options.Callback then
+                options.Callback(true)
+            end
+        else
+            KeyMessage.Text = "Invalid key!"
+            Tween(KeyInput, {BackgroundColor3 = Color3.fromRGB(255, 50, 50)}, 0.2)
+            wait(0.5)
+            Tween(KeyInput, {BackgroundColor3 = Greatness.CurrentTheme.Secondary}, 0.2)
+            KeyInput.Text = ""
+        end
+    end)
+    
+    -- Enter key to submit
+    KeyInput.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            KeySubmit.MouseButton1Click()
+        end
+    end)
+    
+    return KeyGui
+end
+
+-- Destroy UI
+function Greatness:Destroy()
+    if self.ScreenGui then
+        self.ScreenGui:Destroy()
+    end
+    if self.UISettings then
+        self.UISettings:Destroy()
+    end
+    if self.KeybindConnection then
+        self.KeybindConnection:Disconnect()
+    end
+    if self.BlurEffect then
+        self.BlurEffect:Destroy()
+    end
+end
+
+return Greatness
