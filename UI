@@ -43,7 +43,7 @@ end
 
 local function CreateBlurEffect()
     local blur = Instance.new("BlurEffect")
-    blur.Size = 12 -- Set size immediately
+    blur.Size = 12 -- Set to full size immediately
     blur.Parent = Lighting
     return blur
 end
@@ -57,7 +57,8 @@ function Greatness:CreateWindow(options)
         MobileButton = nil,
         Verified = not options.KeySystem,
         KeySystemEnabled = options.KeySystem or false,
-        BlurEffect = nil
+        BlurEffect = nil,
+        IsTransitioning = false -- Prevent multiple rapid toggles
     }
     
     setmetatable(Window, Greatness)
@@ -151,12 +152,13 @@ function Greatness:CreateWindow(options)
         Parent = LoadingContainer
     })
     
+    -- Use a default Roblox icon instead of custom one
     local LoadingLogo = Create("ImageLabel", {
         Name = "LoadingLogo",
         BackgroundTransparency = 1,
         Size = isMobile and UDim2.new(0, 60, 0, 60) or UDim2.new(0, 80, 0, 80),
         Position = isMobile and UDim2.new(0.5, -30, 0.3, -30) or UDim2.new(0.5, -40, 0.3, -40),
-        Image = "rbxassetid://99955288663052",
+        Image = "rbxassetid://6031075938", -- Default Roblox gear icon
         ZIndex = 22,
         Parent = LoadingContainer
     })
@@ -361,7 +363,7 @@ function Greatness:CreateWindow(options)
             BackgroundTransparency = 0.2,
             Size = UDim2.new(0, 60, 0, 60),
             Position = mobileButtonPosition,
-            Image = "rbxassetid://99955288663052",
+            Image = "rbxassetid://6031075938", -- Default Roblox gear icon
             Visible = false,
             ZIndex = 5,
             Parent = Window.ScreenGui
@@ -396,7 +398,8 @@ function Greatness:CreateWindow(options)
     
     Window:CreateUISettings()
     
-    Window.CloseButton.MouseButton1Click:Connect(function()
+    local closeConnection
+    closeConnection = Window.CloseButton.MouseButton1Click:Connect(function()
         Window:Toggle()
     end)
     
@@ -745,6 +748,11 @@ function Greatness:Toggle()
         return
     end
     
+    if self.IsTransitioning then
+        return
+    end
+    
+    self.IsTransitioning = true
     self.Open = not self.Open
     
     if self.Open then
@@ -759,26 +767,27 @@ function Greatness:Toggle()
         self.MainFrame.Visible = true
         Tween(self.MainFrame, {BackgroundTransparency = 0.1}, 0.3)
         Tween(self.BackgroundOverlay, {BackgroundTransparency = 0.7}, 0.3)
-    else
-        Tween(self.MainFrame, {BackgroundTransparency = 1}, 0.3)
-        Tween(self.BackgroundOverlay, {BackgroundTransparency = 1}, 0.3)
         
-        -- Remove blur effect after closing animation
+        -- Reset transitioning after animation
+        spawn(function()
+            wait(0.3)
+            self.IsTransitioning = false
+        end)
+    else
+        -- Close immediately
+        Tween(self.MainFrame, {BackgroundTransparency = 1}, 0.2)
+        Tween(self.BackgroundOverlay, {BackgroundTransparency = 1}, 0.2)
+        
+        -- Remove blur effect immediately
         if self.BlurEffect then
-            spawn(function()
-                wait(0.3)
-                if self.BlurEffect then
-                    self.BlurEffect:Destroy()
-                    self.BlurEffect = nil
-                end
-            end)
+            self.BlurEffect:Destroy()
+            self.BlurEffect = nil
         end
         
         spawn(function()
-            wait(0.3)
-            if not self.Open then
-                self.MainFrame.Visible = false
-            end
+            wait(0.2)
+            self.MainFrame.Visible = false
+            self.IsTransitioning = false
         end)
     end
 end
