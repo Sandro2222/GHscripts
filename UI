@@ -43,9 +43,8 @@ end
 
 local function CreateBlurEffect()
     local blur = Instance.new("BlurEffect")
-    blur.Size = 0
+    blur.Size = 12 -- Set size immediately
     blur.Parent = Lighting
-    Tween(blur, {Size = 12}, 0.3)
     return blur
 end
 
@@ -57,12 +56,13 @@ function Greatness:CreateWindow(options)
         Open = false,
         MobileButton = nil,
         Verified = not options.KeySystem,
-        KeySystemEnabled = options.KeySystem or false
+        KeySystemEnabled = options.KeySystem or false,
+        BlurEffect = nil
     }
     
     setmetatable(Window, Greatness)
     
-    local isMobile = UserInputService.TouchEnabled
+    local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
     
     Window.ScreenGui = Create("ScreenGui", {
         Name = "GreatnessUI",
@@ -214,7 +214,7 @@ function Greatness:CreateWindow(options)
     Window.MainFrame = Create("Frame", {
         Name = "MainFrame",
         BackgroundColor3 = Greatness.CurrentTheme.Main,
-        BackgroundTransparency = 0.1,
+        BackgroundTransparency = 1,
         Size = mainSize,
         Position = mainPosition,
         Visible = false,
@@ -351,49 +351,52 @@ function Greatness:CreateWindow(options)
     
     Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Window.UISettingsButton})
     
-    local mobileButtonPosition = isMobile and UDim2.new(0, 20, 0, 20) or UDim2.new(1, -80, 1, -80)
-    
-    Window.MobileButton = Create("ImageButton", {
-        Name = "MobileButton",
-        BackgroundColor3 = Greatness.CurrentTheme.Accent,
-        BackgroundTransparency = 0.2,
-        Size = isMobile and UDim2.new(0, 60, 0, 60) or UDim2.new(0, 70, 0, 70),
-        Position = mobileButtonPosition,
-        Image = "rbxassetid://99955288663052",
-        Visible = false,
-        ZIndex = 5,
-        Parent = Window.ScreenGui
-    })
-    
-    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Window.MobileButton})
-    Create("UIStroke", {
-        Color = Color3.new(1, 1, 1),
-        Thickness = 2,
-        Transparency = 0.5,
-        Parent = Window.MobileButton
-    })
-    
-    local MobileGlow = Create("ImageLabel", {
-        Name = "MobileGlow",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 20, 1, 20),
-        Position = UDim2.new(0, -10, 0, -10),
-        Image = "rbxassetid://8992230675",
-        ImageColor3 = Greatness.CurrentTheme.Glow,
-        ImageTransparency = 0.8,
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(49, 49, 450, 450),
-        ZIndex = 4,
-        Parent = Window.MobileButton
-    })
+    -- Only show mobile button on actual mobile devices
+    if isMobile then
+        local mobileButtonPosition = UDim2.new(0, 20, 0, 20)
+        
+        Window.MobileButton = Create("ImageButton", {
+            Name = "MobileButton",
+            BackgroundColor3 = Greatness.CurrentTheme.Accent,
+            BackgroundTransparency = 0.2,
+            Size = UDim2.new(0, 60, 0, 60),
+            Position = mobileButtonPosition,
+            Image = "rbxassetid://99955288663052",
+            Visible = false,
+            ZIndex = 5,
+            Parent = Window.ScreenGui
+        })
+        
+        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Window.MobileButton})
+        Create("UIStroke", {
+            Color = Color3.new(1, 1, 1),
+            Thickness = 2,
+            Transparency = 0.5,
+            Parent = Window.MobileButton
+        })
+        
+        local MobileGlow = Create("ImageLabel", {
+            Name = "MobileGlow",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 20, 1, 20),
+            Position = UDim2.new(0, -10, 0, -10),
+            Image = "rbxassetid://8992230675",
+            ImageColor3 = Greatness.CurrentTheme.Glow,
+            ImageTransparency = 0.8,
+            ScaleType = Enum.ScaleType.Slice,
+            SliceCenter = Rect.new(49, 49, 450, 450),
+            ZIndex = 4,
+            Parent = Window.MobileButton
+        })
+        
+        Window.MobileButton.MouseButton1Click:Connect(function()
+            Window:Toggle()
+        end)
+    end
     
     Window:CreateUISettings()
     
     Window.CloseButton.MouseButton1Click:Connect(function()
-        Window:Toggle()
-    end)
-    
-    Window.MobileButton.MouseButton1Click:Connect(function()
         Window:Toggle()
     end)
     
@@ -472,19 +475,22 @@ function Greatness:LoadingAnimation()
     self.LoadingFrame.Visible = true
     Tween(self.LoadingFrame, {BackgroundTransparency = 0.2}, 0.8)
     
-    local loadingBar = self.LoadingFrame:FindFirstChild("LoadingContainer")
-    if loadingBar then
-        local barFill = loadingBar:FindFirstChild("LoadingBar"):FindFirstChild("LoadingBarFill")
-        if barFill then
-            Tween(barFill, {Size = UDim2.new(1, 0, 1, 0)}, 2.5)
+    local loadingContainer = self.LoadingFrame:FindFirstChild("LoadingContainer")
+    if loadingContainer then
+        local loadingBar = loadingContainer:FindFirstChild("LoadingBar")
+        if loadingBar then
+            local barFill = loadingBar:FindFirstChild("LoadingBarFill")
+            if barFill then
+                Tween(barFill, {Size = UDim2.new(1, 0, 1, 0)}, 2.5)
+            end
         end
-    end
-    
-    local logo = self.LoadingFrame:FindFirstChild("LoadingContainer"):FindFirstChild("LoadingLogo")
-    if logo then
-        for i = 1, 2 do
-            Tween(logo, {Rotation = 360}, 1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-            wait(1.6)
+        
+        local logo = loadingContainer:FindFirstChild("LoadingLogo")
+        if logo then
+            for i = 1, 2 do
+                Tween(logo, {Rotation = 360}, 1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+                wait(1.6)
+            end
         end
     end
     
@@ -510,7 +516,7 @@ function Greatness:CreateUISettings()
         Parent = CoreGui
     })
     
-    local isMobile = UserInputService.TouchEnabled
+    local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
     local settingsSize = isMobile and UDim2.new(0, 380, 0, 300) or UDim2.new(0, 450, 0, 350)
     local settingsPosition = isMobile and UDim2.new(0.5, -190, 0.5, -150) or UDim2.new(0.5, -225, 0.5, -175)
     
@@ -742,28 +748,38 @@ function Greatness:Toggle()
     self.Open = not self.Open
     
     if self.Open then
+        -- Create blur effect immediately with full size
         if not self.BlurEffect then
             self.BlurEffect = CreateBlurEffect()
         else
             self.BlurEffect.Parent = Lighting
-            Tween(self.BlurEffect, {Size = 12}, 0.3)
+            self.BlurEffect.Size = 12
         end
         
         self.MainFrame.Visible = true
         Tween(self.MainFrame, {BackgroundTransparency = 0.1}, 0.3)
         Tween(self.BackgroundOverlay, {BackgroundTransparency = 0.7}, 0.3)
     else
-        if self.BlurEffect then
-            Tween(self.BlurEffect, {Size = 0}, 0.3)
-            wait(0.3)
-            self.BlurEffect:Destroy()
-            self.BlurEffect = nil
-        end
-        
         Tween(self.MainFrame, {BackgroundTransparency = 1}, 0.3)
         Tween(self.BackgroundOverlay, {BackgroundTransparency = 1}, 0.3)
-        wait(0.3)
-        self.MainFrame.Visible = false
+        
+        -- Remove blur effect after closing animation
+        if self.BlurEffect then
+            spawn(function()
+                wait(0.3)
+                if self.BlurEffect then
+                    self.BlurEffect:Destroy()
+                    self.BlurEffect = nil
+                end
+            end)
+        end
+        
+        spawn(function()
+            wait(0.3)
+            if not self.Open then
+                self.MainFrame.Visible = false
+            end
+        end)
     end
 end
 
@@ -774,7 +790,7 @@ function Greatness:CreateTab(name, icon)
         Parent = self
     }
     
-    local isMobile = UserInputService.TouchEnabled
+    local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
     
     Tab.Button = Create("TextButton", {
         Name = name .. "Tab",
@@ -848,7 +864,7 @@ function Greatness:CreateToggle(tab, options)
         Callback = options.Callback or function() end
     }
     
-    local isMobile = UserInputService.TouchEnabled
+    local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
     
     local ToggleFrame = Create("Frame", {
         Name = "ToggleFrame",
@@ -941,7 +957,7 @@ function Greatness:CreateSlider(tab, options)
         Callback = options.Callback or function() end
     }
     
-    local isMobile = UserInputService.TouchEnabled
+    local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
     
     local SliderFrame = Create("Frame", {
         Name = "SliderFrame",
@@ -1059,7 +1075,7 @@ function Greatness:CreateButton(tab, options)
         Callback = options.Callback or function() end
     }
     
-    local isMobile = UserInputService.TouchEnabled
+    local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
     
     local ButtonElement = Create("TextButton", {
         Name = "Button",
@@ -1100,7 +1116,7 @@ function Greatness:CreateLabel(tab, options)
         Type = "Label"
     }
     
-    local isMobile = UserInputService.TouchEnabled
+    local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
     
     local LabelElement = Create("TextLabel", {
         Name = "Label",
@@ -1133,7 +1149,7 @@ function Greatness:KeySystem(options)
         Parent = CoreGui
     })
     
-    local isMobile = UserInputService.TouchEnabled
+    local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
     local keySize = isMobile and UDim2.new(0, 300, 0, 200) or UDim2.new(0, 350, 0, 250)
     local keyPosition = isMobile and UDim2.new(0.5, -150, 0.5, -100) or UDim2.new(0.5, -175, 0.5, -125)
     
