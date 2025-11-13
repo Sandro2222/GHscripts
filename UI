@@ -152,13 +152,13 @@ function Greatness:CreateWindow(options)
         Parent = LoadingContainer
     })
     
-    -- Use a default Roblox icon instead of custom one
+    -- YOUR CUSTOM DECAL - Loading Logo
     local LoadingLogo = Create("ImageLabel", {
         Name = "LoadingLogo",
         BackgroundTransparency = 1,
         Size = isMobile and UDim2.new(0, 60, 0, 60) or UDim2.new(0, 80, 0, 80),
         Position = isMobile and UDim2.new(0.5, -30, 0.3, -30) or UDim2.new(0.5, -40, 0.3, -40),
-        Image = "rbxassetid://6031075938", -- Default Roblox gear icon
+        Image = "rbxassetid://99955288663052", -- YOUR CUSTOM DECAL
         ZIndex = 22,
         Parent = LoadingContainer
     })
@@ -353,7 +353,7 @@ function Greatness:CreateWindow(options)
     
     Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Window.UISettingsButton})
     
-    -- Only show mobile button on actual mobile devices
+    -- Mobile button with YOUR CUSTOM DECAL
     if isMobile then
         local mobileButtonPosition = UDim2.new(0, 20, 0, 20)
         
@@ -363,7 +363,7 @@ function Greatness:CreateWindow(options)
             BackgroundTransparency = 0.2,
             Size = UDim2.new(0, 60, 0, 60),
             Position = mobileButtonPosition,
-            Image = "rbxassetid://6031075938", -- Default Roblox gear icon
+            Image = "rbxassetid://99955288663052", -- YOUR CUSTOM DECAL
             Visible = false,
             ZIndex = 5,
             Parent = Window.ScreenGui
@@ -398,8 +398,7 @@ function Greatness:CreateWindow(options)
     
     Window:CreateUISettings()
     
-    local closeConnection
-    closeConnection = Window.CloseButton.MouseButton1Click:Connect(function()
+    Window.CloseButton.MouseButton1Click:Connect(function()
         Window:Toggle()
     end)
     
@@ -1051,21 +1050,29 @@ function Greatness:CreateSlider(tab, options)
         Slider.Callback(Slider.Value)
     end
     
-    SliderButton.MouseButton1Down:Connect(function()
-        dragging = true
-    end)
+    -- FIXED MOBILE SLIDERS: Use both mouse and touch events
+    local function onInputBegan(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateSlider(input) -- Update immediately on tap
+        end
+    end
     
-    SliderButton.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    local function onInputEnded(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
-    end)
+    end
     
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+    local function onInputChanged(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             updateSlider(input)
         end
-    end)
+    end
+    
+    SliderButton.InputBegan:Connect(onInputBegan)
+    SliderButton.InputEnded:Connect(onInputEnded)
+    UserInputService.InputChanged:Connect(onInputChanged)
     
     Slider.SliderFrame = SliderFrame
     Slider.SliderText = SliderText
